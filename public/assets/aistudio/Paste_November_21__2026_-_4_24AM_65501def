@@ -1,0 +1,1782 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BI · Relatório Comercial Diário</title>
+    <meta name="theme-color" content="#192863">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- SheetJS (xlsx) para exportação real de Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- Configuração Tailwind com Identidade Oficial Bilil (Grupo CTS) -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            950: '#101B47', // Azul-marinho profundo
+                            900: '#192863', // Azul-marinho oficial Bilil (Cabeçalhos e títulos)
+                            800: '#223682', // Azul-marinho hover
+                            700: '#2F469C',
+                            cyan: '#0084C7', // Azul-ciano oficial (Ícones, linhas e destaques)
+                            cyanLight: '#E0F2FE',
+                            gold: '#F59E0B', // Âmbar/Dourado oficial (Botões de acção principais)
+                            goldHover: '#D97706',
+                            surface: '#F4F8FB', // Fundo claro suave dos cartões
+                            accent: '#0084C7',
+                            accentHover: '#0369A1',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Ajustes globais mobile-first */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F4F8FB;
+            color: #192863;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: contain;
+        }
+
+        /* Estilo suave para scrollbar horizontal nos passos */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Campos bloqueados */
+        input:disabled, textarea:disabled, select:disabled {
+            background-color: #EEF4F8 !important;
+            color: #475569 !important;
+            border-color: #CBD5E1 !important;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-brand-surface text-slate-800 select-none sm:select-auto">
+
+    <!-- ==================== MODAL / CAIXA DE MENSAGEM CUSTOMIZADA (Substitui alert/confirm) ==================== -->
+    <div id="custom-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-brand-950/70 backdrop-blur-sm p-4 transition-opacity">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-sky-100 transform transition-all">
+            <div class="flex items-center gap-3 mb-3">
+                <div id="modal-icon-container" class="w-10 h-10 rounded-full flex items-center justify-center bg-sky-100 text-brand-cyan shrink-0">
+                    <i id="modal-icon" class="fa-solid fa-circle-info text-lg"></i>
+                </div>
+                <h3 id="modal-title" class="text-lg font-bold text-brand-900 leading-tight">Atenção</h3>
+            </div>
+            <p id="modal-message" class="text-slate-600 text-sm leading-relaxed mb-6">Mensagem</p>
+            <div id="modal-actions" class="flex flex-col sm:flex-row gap-2.5 justify-end">
+                <button id="modal-cancel-btn" class="w-full sm:w-auto px-4 py-3 rounded-xl font-semibold text-sm text-slate-700 bg-slate-100 hover:bg-slate-200 active:scale-[0.99] transition">
+                    Cancelar
+                </button>
+                <button id="modal-confirm-btn" class="w-full sm:w-auto px-5 py-3 rounded-xl font-bold text-sm text-brand-950 bg-brand-gold hover:bg-brand-goldHover active:scale-[0.99] transition shadow-sm">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TOAST NOTIFICATION ==================== -->
+    <div id="toast-container" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 pointer-events-none flex flex-col gap-2 w-11/12 max-w-sm"></div>
+
+    <!-- ==================== ECRÃ 1: AUTENTICAÇÃO (IDENTIDADE BILIL) ==================== -->
+    <div id="auth-screen" class="min-h-screen flex flex-col justify-center items-center p-5 bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800">
+        <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-white/20 p-7 sm:p-9">
+            <!-- Logótipo Oficial Bilil -->
+            <!-- Logótipo Oficial BI -->
+            <div class="flex items-center gap-3.5 mb-6">
+                <div class="w-16 h-14 rounded-2xl bg-brand-surface border border-sky-200/80 flex items-center justify-center shadow-sm shrink-0 px-2">
+                    <svg viewBox="0 0 110 64" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Barras de BI ascendentes -->
+                        <rect x="58" y="34" width="6" height="16" rx="2" fill="#7DD3FC"/>
+                        <rect x="67" y="26" width="6" height="24" rx="2" fill="#38BDF8"/>
+                        <rect x="76" y="18" width="6" height="32" rx="2" fill="#0284C7"/>
+                        <rect x="85" y="10" width="6" height="40" rx="2" fill="#192863"/>
+                        <!-- Seta de crescimento -->
+                        <path d="M56 28L70 17L79 21L91 8" stroke="#0084C7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M85 8H91V14" stroke="#0084C7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <!-- Tipografia BI -->
+                        <text x="12" y="45" font-family="Inter, sans-serif" font-weight="800" font-size="34" fill="#192863">BI</text>
+                    </svg>
+                </div>
+                <div>
+                    <span class="inline-block px-2.5 py-0.5 rounded-full bg-sky-100 text-brand-cyan text-[10px] font-extrabold uppercase tracking-wider mb-1">
+                        Business Intelligence · CTS
+                    </span>
+                    <h1 class="text-xl font-extrabold text-brand-900 tracking-tight leading-tight">Relatório Comercial Diário</h1>
+                </div>
+            </div>
+            
+            <p id="auth-subtitle" class="text-slate-500 text-sm mb-6 leading-relaxed">Plataforma móvel de registo comercial no terreno. Introduza o seu código de acesso pessoal.</p>
+
+            <!-- Formulário de Login (Quando já existe código criado) -->
+            <form id="login-form" class="space-y-5" novalidate>
+                <div>
+                    <label for="access-code-input" class="block text-xs font-bold uppercase tracking-wider text-brand-900 mb-2">
+                        Código de Acesso (5 caracteres)
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="password" 
+                            id="access-code-input" 
+                            maxlength="5" 
+                            autocomplete="off"
+                            placeholder="Ex: •••••"
+                            class="w-full text-center tracking-[0.4em] text-2xl font-bold uppercase px-4 py-4 rounded-2xl border-2 border-slate-200 focus:border-brand-cyan focus:outline-none transition bg-brand-surface focus:bg-white text-brand-900"
+                        >
+                        <button type="button" id="toggle-code-visibility" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-900 p-2" aria-label="Mostrar código">
+                            <i class="fa-regular fa-eye"></i>
+                        </button>
+                    </div>
+                    <p id="auth-error-msg" class="text-red-600 text-xs font-medium mt-2 hidden flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span>Formato inválido. Utilize exactamente 2 letras maiúsculas e 3 números (ex: AB123).</span>
+                    </p>
+                </div>
+
+                <button type="submit" class="w-full py-4 px-6 rounded-full bg-brand-gold hover:bg-brand-goldHover text-brand-950 font-extrabold text-base shadow-lg shadow-amber-500/25 active:scale-[0.99] transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <span>Aceder à Plataforma</span>
+                </button>
+            </form>
+
+            <!-- Formulário de Criação Inicial de Palavra-Passe / Código (Primeiro Acesso) -->
+            <form id="setup-code-form" class="hidden space-y-4" novalidate>
+                <div class="p-3.5 rounded-2xl bg-sky-50 border-l-4 border-brand-cyan text-xs text-brand-900 leading-relaxed">
+                    <strong>Primeiro acesso:</strong> Crie a sua palavra-passe pessoal com exactamente <strong>2 letras maiúsculas e 3 números</strong> (ex: <code class="font-bold text-brand-cyan">AB123</code>).
+                </div>
+
+                <div>
+                    <label for="new-code-input" class="block text-xs font-bold uppercase tracking-wider text-brand-900 mb-1.5">
+                        Criar Palavra-Passe (5 caracteres)
+                    </label>
+                    <input 
+                        type="password" 
+                        id="new-code-input" 
+                        maxlength="5" 
+                        autocomplete="off"
+                        placeholder="Ex: AB123"
+                        class="w-full text-center tracking-[0.4em] text-xl font-bold uppercase px-4 py-3.5 rounded-2xl border-2 border-slate-200 focus:border-brand-cyan focus:outline-none transition bg-brand-surface focus:bg-white text-brand-900"
+                    >
+                </div>
+
+                <div>
+                    <label for="confirm-code-input" class="block text-xs font-bold uppercase tracking-wider text-brand-900 mb-1.5">
+                        Confirmar Palavra-Passe
+                    </label>
+                    <input 
+                        type="password" 
+                        id="confirm-code-input" 
+                        maxlength="5" 
+                        autocomplete="off"
+                        placeholder="Repita o código"
+                        class="w-full text-center tracking-[0.4em] text-xl font-bold uppercase px-4 py-3.5 rounded-2xl border-2 border-slate-200 focus:border-brand-cyan focus:outline-none transition bg-brand-surface focus:bg-white text-brand-900"
+                    >
+                </div>
+
+                <p id="setup-error-msg" class="text-red-600 text-xs font-medium hidden flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span>Erro de validação.</span>
+                </p>
+
+                <button type="submit" class="w-full py-4 px-6 rounded-full bg-brand-gold hover:bg-brand-goldHover text-brand-950 font-extrabold text-base shadow-lg shadow-amber-500/25 active:scale-[0.99] transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-key"></i>
+                    <span>Guardar Palavra-Passe e Entrar</span>
+                </button>
+            </form>
+
+            <div class="mt-7 pt-5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+                <span class="flex items-center gap-1.5 font-medium text-brand-900/70"><i class="fa-solid fa-shield-halved text-emerald-600"></i> Grupo CTS · Maputo</span>
+                <span class="text-brand-cyan font-semibold">Modo Offline Activo</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== APLICAÇÃO PRINCIPAL (APÓS AUTENTICAÇÃO) ==================== -->
+    <div id="app-shell" class="hidden min-h-screen flex-col">
+        
+        <!-- BARRA SUPERIOR FIXA (AZUL-MARINHO OFICIAL BILIL) -->
+        <header class="sticky top-0 z-30 bg-brand-900 text-white shadow-md border-b border-white/10">
+            <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+                <button onclick="navigateTo('dashboard')" class="flex items-center gap-3 text-left focus:outline-none">
+                    <!-- Emblema Branco Arredondado BI -->
+                    <div class="w-11 h-9 rounded-xl bg-white flex items-center justify-center shadow-sm px-1.5 shrink-0">
+                        <svg viewBox="0 0 110 64" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="58" y="34" width="6" height="16" rx="2" fill="#7DD3FC"/>
+                            <rect x="67" y="26" width="6" height="24" rx="2" fill="#38BDF8"/>
+                            <rect x="76" y="18" width="6" height="32" rx="2" fill="#0284C7"/>
+                            <rect x="85" y="10" width="6" height="40" rx="2" fill="#192863"/>
+                            <path d="M56 28L70 17L79 21L91 8" stroke="#0084C7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                            <text x="12" y="46" font-family="Inter, sans-serif" font-weight="800" font-size="35" fill="#192863">BI</text>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-sm sm:text-base leading-tight text-white">Relatório Comercial Diário</h1>
+                        <p id="header-date-display" class="text-xs text-sky-300 font-medium">--/--/----</p>
+                    </div>
+                </button>
+
+                <div class="flex items-center gap-1.5 sm:gap-2">
+                    <button onclick="navigateTo('settings')" class="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-sky-100 transition" title="Definições e Vendedor">
+                        <i class="fa-solid fa-gear text-base"></i>
+                    </button>
+                    <button onclick="handleLogout()" class="p-2.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-200 transition" title="Terminar Sessão">
+                        <i class="fa-solid fa-power-off text-base"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- CONTEÚDO DINÂMICO -->
+        <main class="flex-1 max-w-3xl w-full mx-auto px-4 py-5 pb-24">
+
+            <!-- ==================== VISTA 1: PAINEL PRINCIPAL (DASHBOARD) ==================== -->
+            <section id="view-dashboard" class="space-y-5">
+                
+                <!-- Cartão de Identificação e Progresso -->
+                <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-sky-100 border-l-4 border-l-brand-cyan">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+                        <div>
+                            <span class="text-[11px] font-extrabold uppercase tracking-wider text-brand-cyan">Vendedor Responsável</span>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <h2 id="dash-seller-name" class="text-lg font-extrabold text-brand-900">Não definido</h2>
+                                <button onclick="navigateTo('settings')" class="text-xs font-bold text-brand-cyan hover:underline px-2.5 py-1 rounded-lg bg-sky-50">
+                                    Editar
+                                </button>
+                            </div>
+                        </div>
+                        <div class="bg-brand-surface px-4 py-2.5 rounded-2xl border border-sky-100 flex items-center justify-between sm:justify-end gap-4">
+                            <div>
+                                <span class="block text-[11px] font-bold uppercase text-slate-400">Progresso Diário</span>
+                                <span id="dash-progress-text" class="text-xl font-extrabold text-brand-900">Visitas 00/10</span>
+                            </div>
+                            <div class="w-11 h-11 rounded-full bg-sky-100 text-brand-cyan flex items-center justify-center font-extrabold text-sm" id="dash-progress-percent">
+                                0%
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Barra de Progresso Visual -->
+                    <div class="mt-4">
+                        <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                            <div id="dash-progress-bar" class="h-full bg-gradient-to-r from-brand-900 to-brand-cyan transition-all duration-500 rounded-full" style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-slate-500 mt-2 font-semibold">
+                            <span id="dash-locked-count" class="text-emerald-700">0 Concluídas/Bloqueadas</span>
+                            <span id="dash-draft-count" class="text-brand-cyan">0 Em curso</span>
+                        </div>
+                    </div>
+
+                    <!-- Botão Principal: Continuar Relatório (Destaque Dourado/Âmbar Oficial) -->
+                    <div class="mt-6">
+                        <button onclick="continueReport()" class="w-full py-4 px-5 rounded-full bg-brand-gold hover:bg-brand-goldHover text-brand-950 font-extrabold text-base shadow-md shadow-amber-500/20 active:scale-[0.99] transition flex items-center justify-center gap-3">
+                            <i class="fa-solid fa-play text-brand-900"></i>
+                            <span id="dash-continue-label">Continuar Relatório (Visita 01)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Grelha de 10 Visitas Independentes -->
+                <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-sky-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-extrabold text-brand-900 text-base">Registos das 10 Visitas</h3>
+                        <span class="text-xs text-brand-cyan font-semibold">Toque para abrir</span>
+                    </div>
+
+                    <div id="visits-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- Preenchido dinamicamente via JS -->
+                    </div>
+                </div>
+
+                <!-- Acções de Fecho, Resumo e Exportação -->
+                <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-sky-100 space-y-3">
+                    <h3 class="font-extrabold text-brand-900 text-base mb-1">Fecho e Envio do Relatório</h3>
+                    
+                    <button onclick="navigateTo('summary')" class="w-full py-3.5 px-4 rounded-2xl bg-brand-surface hover:bg-sky-100/70 text-brand-900 border border-sky-200/70 font-bold text-sm transition flex items-center justify-center gap-2.5">
+                        <i class="fa-solid fa-clipboard-list text-brand-cyan text-base"></i>
+                        <span>Visualizar Resumo Diário</span>
+                    </button>
+
+                    <button onclick="prepareWhatsAppShare()" class="w-full py-4 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-sm active:scale-[0.99] transition flex items-center justify-center gap-2.5">
+                        <i class="fa-brands fa-whatsapp text-xl"></i>
+                        <span>Enviar Relatório pelo WhatsApp</span>
+                    </button>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <button onclick="exportToExcel(false)" class="w-full py-3.5 px-4 rounded-2xl border-2 border-slate-200 hover:border-brand-900/30 bg-white text-brand-900 font-bold text-sm transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-file-excel text-emerald-600 text-base"></i>
+                            <span>Descarregar Excel</span>
+                        </button>
+                        <button onclick="exportToExcel(true)" class="w-full py-3.5 px-4 rounded-2xl border-2 border-sky-200 hover:border-brand-cyan bg-sky-50/70 text-brand-900 font-bold text-sm transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-share-nodes text-brand-cyan text-base"></i>
+                            <span>Exportar Excel e Partilhar</span>
+                        </button>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ==================== VISTA 2: FORMULÁRIO INDIVIDUAL DE VISITA (01 a 10) ==================== -->
+            <section id="view-visit" class="hidden space-y-4">
+                
+                <!-- Navegação rápida horizontal entre visitas -->
+                <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1" id="visit-step-pills">
+                    <!-- Pills 01 a 10 -->
+                </div>
+
+                <!-- Cabeçalho da Visita Actual -->
+                <div class="bg-white rounded-3xl p-5 shadow-sm border border-sky-100 border-l-4 border-l-brand-900">
+                    <div class="flex items-center justify-between gap-2 mb-3">
+                        <div>
+                            <span class="text-[11px] font-extrabold uppercase tracking-widest text-brand-cyan">RELATÓRIO COMERCIAL · BI</span>
+                            <h2 id="visit-header-title" class="text-xl font-extrabold text-brand-900">Visita 01 de 10</h2>
+                        </div>
+                        <div id="visit-status-badge" class="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-amber-100 text-amber-800">
+                            <i class="fa-solid fa-pen"></i>
+                            <span>Em preenchimento</span>
+                        </div>
+                    </div>
+
+                    <!-- Barra de progresso da visita na sequência -->
+                    <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div id="visit-step-bar" class="h-full bg-gradient-to-r from-brand-900 to-brand-cyan transition-all duration-300" style="width: 10%"></div>
+                    </div>
+
+                    <!-- Banner de Protecção quando a visita está TRANCADA -->
+                    <div id="locked-banner" class="hidden mt-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-lock text-base"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-bold text-emerald-950">Visita concluída e protegida</p>
+                                <p class="text-xs text-emerald-700">Os campos estão bloqueados contra alterações acidentais.</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="requestUnlockVisit()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white border border-emerald-300 hover:bg-emerald-100 text-emerald-900 font-bold text-xs shadow-sm transition flex items-center justify-center gap-1.5 shrink-0">
+                            <i class="fa-solid fa-lock-open"></i>
+                            <span>Destrancar para editar</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Formulário da Empresa -->
+                <form id="visit-form" class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-sky-100 space-y-5" onsubmit="return false;">
+                    
+                    <!-- 01. Empresa -->
+                    <div>
+                        <label for="field-company" class="block text-sm font-bold text-brand-900 mb-1.5">
+                            01. Empresa <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="field-company" placeholder="Nome da empresa ou cliente visitado" 
+                            class="w-full px-4 py-3.5 rounded-2xl border border-slate-300 focus:border-brand-cyan focus:ring-2 focus:ring-sky-500/20 focus:outline-none text-base transition">
+                    </div>
+
+                    <!-- 02. Descrição -->
+                    <div>
+                        <label for="field-description" class="block text-sm font-bold text-brand-900 mb-1.5">
+                            02. Descrição <span class="text-red-500">*</span>
+                        </label>
+                        <textarea id="field-description" rows="3" placeholder="Descreva brevemente a actividade da empresa, contexto da visita ou o que foi observado..." 
+                            class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:border-brand-cyan focus:ring-2 focus:ring-sky-500/20 focus:outline-none text-base transition"></textarea>
+                    </div>
+
+                    <!-- 03. Location (Localização) -->
+                    <div>
+                        <label for="field-location" class="block text-sm font-bold text-brand-900 mb-1.5">
+                            03. Location (Localização)
+                        </label>
+                        <div class="space-y-2.5">
+                            <input type="url" id="field-location" placeholder="Cole o link do Google Maps ou obtenha pelo GPS" 
+                                class="w-full px-4 py-3.5 rounded-2xl border border-slate-300 focus:border-brand-cyan focus:ring-2 focus:ring-sky-500/20 focus:outline-none text-sm transition">
+                            
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" id="btn-get-gps" onclick="captureGPSLocation()" 
+                                    class="flex-1 py-3 px-4 rounded-xl bg-brand-surface hover:bg-sky-100/70 text-brand-900 font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 border border-sky-200">
+                                    <i class="fa-solid fa-location-crosshairs text-brand-cyan"></i>
+                                    <span>Obter localização actual</span>
+                                </button>
+                                <a id="btn-open-map" href="#" target="_blank" rel="noopener noreferrer" 
+                                    class="hidden py-3 px-4 rounded-xl bg-sky-50 hover:bg-sky-100 text-brand-cyan font-bold text-xs sm:text-sm transition items-center justify-center gap-1.5 border border-sky-200">
+                                    <i class="fa-solid fa-map-location-dot"></i>
+                                    <span>Abrir Mapa</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 04. Problema -->
+                    <div>
+                        <label for="field-problem" class="block text-sm font-bold text-brand-900 mb-1.5">
+                            04. Problema <span class="text-red-500">*</span>
+                        </label>
+                        <textarea id="field-problem" rows="3" placeholder="Descreva o problema, necessidade ou oportunidade identificada na empresa..." 
+                            class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:border-brand-cyan focus:ring-2 focus:ring-sky-500/20 focus:outline-none text-base transition"></textarea>
+                    </div>
+
+                    <!-- 05. Feedback do cliente -->
+                    <div>
+                        <label for="field-feedback" class="block text-sm font-bold text-brand-900 mb-1.5">
+                            05. Feedback do cliente
+                        </label>
+                        <textarea id="field-feedback" rows="3" placeholder="Reacção, opinião, interesse, dúvidas ou objecções do cliente..." 
+                            class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:border-brand-cyan focus:ring-2 focus:ring-sky-500/20 focus:outline-none text-base transition"></textarea>
+                    </div>
+
+                    <!-- 06. Possibilidade de fechar a venda -->
+                    <div>
+                        <label class="block text-sm font-bold text-brand-900 mb-2">
+                            06. Possibilidade de fechar a venda
+                        </label>
+                        <div id="probability-buttons" class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                            <!-- Gerado dinamicamente -->
+                        </div>
+                    </div>
+
+                    <!-- 07. Acção a seguir -->
+                    <div>
+                        <label class="block text-sm font-bold text-brand-900 mb-2">
+                            07. Acção a seguir <span class="text-red-500">*</span>
+                        </label>
+                        <div id="next-action-buttons" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            <!-- Gerado dinamicamente -->
+                        </div>
+
+                        <!-- Campo condicional se seleccionar "Outro" -->
+                        <div id="other-action-container" class="hidden mt-3">
+                            <label for="field-other-action" class="block text-xs font-bold text-brand-900 mb-1">
+                                Especifique a acção a seguir:
+                            </label>
+                            <input type="text" id="field-other-action" placeholder="Descreva qual será o próximo passo..." 
+                                class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:border-brand-cyan focus:outline-none text-sm">
+                        </div>
+                    </div>
+
+                </form>
+
+                <!-- Botões de Acção e Bloqueio da Visita -->
+                <div class="bg-white rounded-3xl p-5 shadow-sm border border-sky-100 space-y-3">
+                    
+                    <!-- Acções quando DESBLOQUEADA -->
+                    <div id="unlocked-actions" class="space-y-3">
+                        <button type="button" onclick="lockAndAdvance()" class="w-full py-4 px-5 rounded-full bg-brand-gold hover:bg-brand-goldHover text-brand-950 font-extrabold text-base shadow-lg shadow-amber-500/20 active:scale-[0.99] transition flex items-center justify-center gap-2.5">
+                            <i class="fa-solid fa-lock text-brand-900"></i>
+                            <span id="btn-lock-advance-text">Trancar visita e avançar</span>
+                        </button>
+
+                        <div class="grid grid-cols-2 gap-2.5">
+                            <button type="button" onclick="lockCurrentOnly()" class="w-full py-3.5 px-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-lock"></i>
+                                <span>Trancar visita</span>
+                            </button>
+                            <button type="button" onclick="saveAsDraft()" class="w-full py-3.5 px-3 rounded-2xl bg-brand-surface hover:bg-sky-100/70 text-brand-900 border border-sky-200/70 font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2">
+                                <i class="fa-regular fa-floppy-disk text-brand-cyan"></i>
+                                <span>Guardar rascunho</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Acções quando TRANCADA -->
+                    <div id="locked-actions" class="hidden">
+                        <button type="button" onclick="goToNextVisit()" class="w-full py-4 px-5 rounded-full bg-brand-900 hover:bg-brand-800 text-white font-bold text-base shadow-md active:scale-[0.99] transition flex items-center justify-center gap-2">
+                            <span id="btn-next-company-text">Próxima empresa</span>
+                            <i class="fa-solid fa-arrow-right text-brand-gold"></i>
+                        </button>
+                    </div>
+
+                    <!-- Navegação Anterior / Seguinte / Painel -->
+                    <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <button type="button" id="btn-prev-visit" onclick="goToPrevVisit()" class="px-4 py-3 rounded-xl bg-brand-surface hover:bg-sky-100/70 text-brand-900 font-semibold text-xs sm:text-sm transition flex items-center gap-1.5 disabled:opacity-40">
+                            <i class="fa-solid fa-chevron-left text-brand-cyan"></i>
+                            <span>Visita anterior</span>
+                        </button>
+
+                        <button type="button" onclick="navigateTo('dashboard')" class="px-4 py-3 rounded-xl text-brand-900 hover:bg-brand-surface font-bold text-xs sm:text-sm transition">
+                            Painel
+                        </button>
+
+                        <button type="button" id="btn-next-visit" onclick="goToNextVisit()" class="px-4 py-3 rounded-xl bg-brand-surface hover:bg-sky-100/70 text-brand-900 font-semibold text-xs sm:text-sm transition flex items-center gap-1.5">
+                            <span>Próxima visita</span>
+                            <i class="fa-solid fa-chevron-right text-brand-cyan"></i>
+                        </button>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- ==================== VISTA 3: RESUMO DO RELATÓRIO COMERCIAL DIÁRIO ==================== -->
+            <section id="view-summary" class="hidden space-y-5">
+                <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-sky-100 border-l-4 border-l-brand-cyan">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <span class="text-xs font-extrabold uppercase tracking-wider text-brand-cyan">Revisão Final · BI</span>
+                            <h2 class="text-xl font-extrabold text-brand-900">Resumo do Relatório Comercial Diário</h2>
+                        </div>
+                        <button onclick="navigateTo('dashboard')" class="px-3.5 py-2 rounded-xl bg-brand-surface hover:bg-sky-100 text-brand-900 font-bold text-xs">
+                            Voltar
+                        </button>
+                    </div>
+
+                    <!-- Indicadores Rápidos -->
+                    <div class="grid grid-cols-3 gap-2.5 mb-5">
+                        <div class="bg-brand-surface p-3 rounded-2xl border border-sky-100 text-center">
+                            <span id="sum-total-count" class="block text-xl font-extrabold text-brand-900">0</span>
+                            <span class="text-[11px] font-semibold text-slate-500">Registadas</span>
+                        </div>
+                        <div class="bg-emerald-50 p-3 rounded-2xl border border-emerald-200/70 text-center">
+                            <span id="sum-locked-count" class="block text-xl font-extrabold text-emerald-700">0</span>
+                            <span class="text-[11px] font-semibold text-emerald-700">Concluídas</span>
+                        </div>
+                        <div class="bg-amber-50 p-3 rounded-2xl border border-amber-200/70 text-center">
+                            <span id="sum-incomplete-count" class="block text-xl font-extrabold text-amber-700">0</span>
+                            <span class="text-[11px] font-semibold text-amber-700">Incompletas</span>
+                        </div>
+                    </div>
+
+                    <div class="text-xs text-slate-600 bg-brand-surface p-3.5 rounded-2xl border border-sky-100 flex items-center justify-between">
+                        <span>Relatório elaborado por: <strong id="sum-seller-signature" class="text-brand-900">---</strong></span>
+                        <span id="sum-date-signature" class="font-bold text-brand-cyan">--/--/----</span>
+                    </div>
+                </div>
+
+                <!-- Lista Detalhada das Visitas Registadas -->
+                <div id="summary-list" class="space-y-3">
+                    <!-- Preenchido via JS -->
+                </div>
+
+                <!-- Botões de Envio e Exportação no Resumo -->
+                <div class="bg-white rounded-3xl p-5 shadow-sm border border-sky-100 space-y-3">
+                    <button onclick="prepareWhatsAppShare()" class="w-full py-4 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-base shadow-md active:scale-[0.99] transition flex items-center justify-center gap-2.5">
+                        <i class="fa-brands fa-whatsapp text-xl"></i>
+                        <span>Enviar relatório completo pelo WhatsApp</span>
+                    </button>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button onclick="exportToExcel(false)" class="w-full py-3.5 px-4 rounded-2xl border-2 border-slate-200 hover:border-brand-900/30 bg-white text-brand-900 font-bold text-sm transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                            <span>Descarregar relatório Excel</span>
+                        </button>
+                        <button onclick="exportToExcel(true)" class="w-full py-3.5 px-4 rounded-2xl border-2 border-sky-200 hover:border-brand-cyan bg-sky-50/70 text-brand-900 font-bold text-sm transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-share-nodes text-brand-cyan"></i>
+                            <span>Exportar Excel e partilhar</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== VISTA 4: DEFINIÇÕES E GESTÃO DO DIA ==================== -->
+            <section id="view-settings" class="hidden space-y-5">
+                <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-sky-100 space-y-5">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-extrabold text-brand-900">Definições do Vendedor</h2>
+                        <button onclick="navigateTo('dashboard')" class="px-3.5 py-2 rounded-xl bg-brand-surface hover:bg-sky-100 text-brand-900 font-bold text-xs">
+                            Voltar
+                        </button>
+                    </div>
+
+                    <!-- Nome do Vendedor (Assinatura) -->
+                    <div>
+                        <label for="settings-seller-name" class="block text-sm font-bold text-brand-900 mb-1.5">
+                            Nome do vendedor (Assinatura nos relatórios)
+                        </label>
+                        <div class="flex gap-2">
+                            <input type="text" id="settings-seller-name" placeholder="Introduza o seu nome completo" 
+                                class="flex-1 px-4 py-3.5 rounded-2xl border border-slate-300 focus:border-brand-cyan focus:outline-none text-base">
+                            <button onclick="saveSellerName()" class="px-5 py-3.5 rounded-2xl bg-brand-gold hover:bg-brand-goldHover text-brand-950 font-extrabold text-sm transition shadow-sm">
+                                Guardar
+                            </button>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1.5">Este nome ficará guardado automaticamente para os relatórios seguintes.</p>
+                    </div>
+
+                    <!-- Configuração do Código de Acesso -->
+                    <div class="pt-4 border-t border-slate-100">
+                        <label for="settings-access-code" class="block text-sm font-bold text-brand-900 mb-1.5">
+                            Alterar Código de Acesso (Administrador)
+                        </label>
+                        <div class="flex gap-2">
+                            <input type="text" id="settings-access-code" maxlength="5" placeholder="Ex: AB123" 
+                                class="w-36 text-center uppercase font-bold tracking-widest px-4 py-3.5 rounded-2xl border border-slate-300 focus:border-brand-cyan focus:outline-none text-base text-brand-900">
+                            <button onclick="updateConfiguredCode()" class="flex-1 px-4 py-3.5 rounded-2xl bg-brand-900 hover:bg-brand-800 text-white font-bold text-sm transition">
+                                Actualizar Código
+                            </button>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1.5">Requer exactamente 2 letras maiúsculas e 3 números (ex: XY789).</p>
+                    </div>
+
+                    <!-- Histórico de Dias Anteriores -->
+                    <div class="pt-4 border-t border-slate-100">
+                        <h3 class="text-sm font-bold text-brand-900 mb-2">Relatórios Guardados por Data</h3>
+                        <div id="history-dates-list" class="space-y-2">
+                            <!-- Listagem de datas -->
+                        </div>
+                    </div>
+
+                    <!-- Zona de Perigo: Reiniciar Relatório do Dia -->
+                    <div class="pt-5 border-t border-red-100">
+                        <h3 class="text-sm font-bold text-red-700 mb-1">Zona de Segurança</h3>
+                        <p class="text-xs text-slate-500 mb-3">Apenas utilize esta opção caso pretenda apagar todos os registos do dia actual e recomeçar do zero.</p>
+                        <button onclick="confirmResetDailyReport()" class="w-full py-3.5 px-4 rounded-2xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold text-sm transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-trash-can"></i>
+                            <span>Reiniciar relatório de hoje</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- ==================== LÓGICA DA APLICAÇÃO (JAVASCRIPT) ==================== -->
+    <script>
+        /**
+         * ARQUITECTURA DE DADOS E ESTADO
+         * Preparada para futura sincronização com backend e múltiplos utilizadores.
+         */
+        const STORAGE_KEYS = {
+            AUTH_SESSION: 'rcd_session_authenticated',
+            CONFIG_CODE: 'rcd_configured_access_code',
+            SELLER_NAME: 'rcd_seller_name',
+            REPORTS_PREFIX: 'rcd_report_' // Seguido de YYYY-MM-DD
+        };
+
+        const PROBABILITY_OPTIONS = [
+            { id: 'Muito baixa', label: 'Muito baixa', color: 'border-red-200 text-red-700 bg-red-50/50', active: 'bg-red-600 text-white border-red-600' },
+            { id: 'Baixa', label: 'Baixa', color: 'border-orange-200 text-orange-700 bg-orange-50/50', active: 'bg-orange-500 text-white border-orange-500' },
+            { id: 'Neutra', label: 'Neutra', color: 'border-slate-200 text-slate-700 bg-slate-50', active: 'bg-slate-700 text-white border-slate-700' },
+            { id: 'Maior', label: 'Maior', color: 'border-blue-200 text-blue-700 bg-blue-50/50', active: 'bg-blue-600 text-white border-blue-600' },
+            { id: 'Muito maior', label: 'Muito maior', color: 'border-emerald-200 text-emerald-700 bg-emerald-50/50', active: 'bg-emerald-600 text-white border-emerald-600' }
+        ];
+
+        const ACTION_OPTIONS = [
+            'Ligação',
+            'Nova visita',
+            'Apresentar proposta',
+            'Encerramento',
+            'Outro'
+        ];
+
+        // Estado em memória
+        let appState = {
+            currentDateISO: getTodayISO(),
+            activeDateISO: getTodayISO(),
+            currentVisitIndex: 0, // 0 a 9 (corresponde a Visita 01 a 10)
+            currentView: 'dashboard',
+            visits: []
+        };
+
+        // ==================== UTILITÁRIOS DE DATA ====================
+        function getTodayISO() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatDatePT(isoDate) {
+            if (!isoDate) return '';
+            const [y, m, d] = isoDate.split('-');
+            return `${d}/${m}/${y}`;
+        }
+
+        // ==================== INICIALIZAÇÃO ====================
+        window.addEventListener('DOMContentLoaded', () => {
+            // Verificar sessão activa
+            const isAuthenticated = sessionStorage.getItem(STORAGE_KEYS.AUTH_SESSION) === 'true';
+            if (isAuthenticated && localStorage.getItem(STORAGE_KEYS.CONFIG_CODE)) {
+                showMainApp();
+            } else {
+                showAuthScreen();
+            }
+
+            // Listeners do ecrã de autenticação e criação de palavra-passe
+            setupAuthListeners();
+
+            // Listeners de autosave nos campos do formulário
+            setupFormAutosave();
+
+            // Protecção contra saída acidental ou botão Back do telemóvel
+            window.addEventListener('popstate', (e) => {
+                if (sessionStorage.getItem(STORAGE_KEYS.AUTH_SESSION) === 'true') {
+                    // Mantém o utilizador dentro da plataforma e regressa ao painel se estiver numa subvista
+                    if (appState.currentView !== 'dashboard') {
+                        history.pushState({ view: 'dashboard' }, '');
+                        navigateTo('dashboard', false);
+                    }
+                }
+            });
+        });
+
+        // ==================== SISTEMA DE AUTENTICAÇÃO E CRIAÇÃO DE PALAVRA-PASSE ====================
+        function setupAuthListeners() {
+            const loginForm = document.getElementById('login-form');
+            const input = document.getElementById('access-code-input');
+            const toggleBtn = document.getElementById('toggle-code-visibility');
+            const errorMsg = document.getElementById('auth-error-msg');
+
+            const setupForm = document.getElementById('setup-code-form');
+            const newCodeInput = document.getElementById('new-code-input');
+            const confirmCodeInput = document.getElementById('confirm-code-input');
+            const setupErrorMsg = document.getElementById('setup-error-msg');
+
+            const sanitizeCodeInput = (el, errEl) => {
+                el.addEventListener('input', () => {
+                    el.value = el.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                    errEl.classList.add('hidden');
+                });
+            };
+
+            sanitizeCodeInput(input, errorMsg);
+            sanitizeCodeInput(newCodeInput, setupErrorMsg);
+            sanitizeCodeInput(confirmCodeInput, setupErrorMsg);
+
+            // Mostrar/Ocultar código no login
+            toggleBtn.addEventListener('click', () => {
+                const isPass = input.type === 'password';
+                input.type = isPass ? 'text' : 'password';
+                toggleBtn.innerHTML = isPass ? '<i class="fa-regular fa-eye-slash"></i>' : '<i class="fa-regular fa-eye"></i>';
+            });
+
+            // Criação inicial de palavra-passe
+            setupForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const newCode = newCodeInput.value.trim().toUpperCase();
+                const confirmCode = confirmCodeInput.value.trim().toUpperCase();
+                const formatRegex = /^[A-Z]{2}[0-9]{3}$/;
+
+                if (!formatRegex.test(newCode)) {
+                    setupErrorMsg.querySelector('span').textContent = 'Formato inválido. Utilize exactamente 2 letras maiúsculas e 3 números (ex: AB123).';
+                    setupErrorMsg.classList.remove('hidden');
+                    return;
+                }
+
+                if (newCode !== confirmCode) {
+                    setupErrorMsg.querySelector('span').textContent = 'As palavras-passe introduzidas não coincidem.';
+                    setupErrorMsg.classList.remove('hidden');
+                    return;
+                }
+
+                // Guardar palavra-passe criada e limpar campos
+                localStorage.setItem(STORAGE_KEYS.CONFIG_CODE, newCode);
+                newCodeInput.value = '';
+                confirmCodeInput.value = '';
+                sessionStorage.setItem(STORAGE_KEYS.AUTH_SESSION, 'true');
+                history.pushState({ view: 'dashboard' }, '');
+                showMainApp();
+                showToast('Palavra-passe criada e guardada com sucesso!', 'success');
+            });
+
+            // Submissão do código no login
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const code = input.value.trim().toUpperCase();
+                
+                // Validar formato: exactamente 2 letras maiúsculas seguidas de 3 números (ex: AB123)
+                const formatRegex = /^[A-Z]{2}[0-9]{3}$/;
+                const configuredCode = localStorage.getItem(STORAGE_KEYS.CONFIG_CODE);
+
+                if (!formatRegex.test(code)) {
+                    errorMsg.querySelector('span').textContent = 'Formato inválido. Utilize 2 letras maiúsculas e 3 números (ex: AB123).';
+                    errorMsg.classList.remove('hidden');
+                    return;
+                }
+
+                if (code !== configuredCode) {
+                    errorMsg.querySelector('span').textContent = 'Palavra-passe incorrecta. Tente novamente.';
+                    errorMsg.classList.remove('hidden');
+                    return;
+                }
+
+                // Sucesso: limpar campo para não expor o código na interface
+                input.value = '';
+                input.type = 'password';
+                sessionStorage.setItem(STORAGE_KEYS.AUTH_SESSION, 'true');
+                history.pushState({ view: 'dashboard' }, '');
+                showMainApp();
+            });
+        }
+
+        function showAuthScreen() {
+            document.getElementById('auth-screen').classList.remove('hidden');
+            document.getElementById('app-shell').classList.add('hidden');
+
+            const hasConfiguredCode = Boolean(localStorage.getItem(STORAGE_KEYS.CONFIG_CODE));
+            const loginForm = document.getElementById('login-form');
+            const setupForm = document.getElementById('setup-code-form');
+            const subtitle = document.getElementById('auth-subtitle');
+
+            if (hasConfiguredCode) {
+                loginForm.classList.remove('hidden');
+                setupForm.classList.add('hidden');
+                subtitle.textContent = 'Plataforma móvel de registo comercial no terreno. Introduza a sua palavra-passe de acesso.';
+            } else {
+                loginForm.classList.add('hidden');
+                setupForm.classList.remove('hidden');
+                subtitle.textContent = 'Configure a sua palavra-passe pessoal para proteger os seus relatórios comerciais.';
+            }
+        }
+
+        function showMainApp() {
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('app-shell').classList.remove('hidden');
+            document.getElementById('app-shell').classList.add('flex');
+
+            loadDailyReport(appState.currentDateISO);
+            renderOptionButtons();
+            navigateTo('dashboard', false);
+        }
+
+        function handleLogout() {
+            openModal({
+                title: 'Terminar Sessão',
+                message: 'Os seus dados estão guardados com segurança no dispositivo. Deseja sair da plataforma?',
+                confirmText: 'Sair',
+                icon: 'fa-power-off',
+                iconBg: 'bg-red-100 text-red-600',
+                onConfirm: () => {
+                    sessionStorage.removeItem(STORAGE_KEYS.AUTH_SESSION);
+                    showAuthScreen();
+                }
+            });
+        }
+
+        // ==================== PERSISTÊNCIA LOCAL POR DATA ====================
+        function createEmptyVisitsArray() {
+            return Array.from({ length: 10 }, (_, idx) => ({
+                id: idx + 1,
+                company: '',
+                description: '',
+                location: '',
+                problem: '',
+                feedback: '',
+                probability: '',
+                nextAction: '',
+                otherAction: '',
+                isLocked: false,
+                updatedAt: null
+            }));
+        }
+
+        function loadDailyReport(dateISO) {
+            appState.activeDateISO = dateISO;
+            const storageKey = STORAGE_KEYS.REPORTS_PREFIX + dateISO;
+            const raw = localStorage.getItem(storageKey);
+
+            if (raw) {
+                try {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed.visits) && parsed.visits.length === 10) {
+                        appState.visits = parsed.visits;
+                    } else {
+                        appState.visits = createEmptyVisitsArray();
+                    }
+                } catch (err) {
+                    appState.visits = createEmptyVisitsArray();
+                }
+            } else {
+                appState.visits = createEmptyVisitsArray();
+                saveDailyReport();
+            }
+
+            document.getElementById('header-date-display').textContent = formatDatePT(dateISO);
+        }
+
+        function saveDailyReport() {
+            const storageKey = STORAGE_KEYS.REPORTS_PREFIX + appState.activeDateISO;
+            const payload = {
+                date: appState.activeDateISO,
+                sellerName: localStorage.getItem(STORAGE_KEYS.SELLER_NAME) || '',
+                lastUpdated: new Date().toISOString(),
+                visits: appState.visits
+            };
+            localStorage.setItem(storageKey, JSON.stringify(payload));
+        }
+
+        // ==================== NAVEGAÇÃO ENTRE VISTAS ====================
+        function navigateTo(viewName, pushHistory = true) {
+            appState.currentView = viewName;
+
+            if (pushHistory) {
+                history.pushState({ view: viewName }, '');
+            }
+
+            // Ocultar todas as secções
+            ['dashboard', 'visit', 'summary', 'settings'].forEach(v => {
+                document.getElementById(`view-${v}`).classList.add('hidden');
+            });
+
+            // Mostrar secção alvo
+            document.getElementById(`view-${viewName}`).classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            if (viewName === 'dashboard') {
+                renderDashboard();
+            } else if (viewName === 'visit') {
+                renderVisitForm(appState.currentVisitIndex);
+            } else if (viewName === 'summary') {
+                renderSummary();
+            } else if (viewName === 'settings') {
+                renderSettings();
+            }
+        }
+
+        function openVisit(index) {
+            if (index < 0 || index > 9) return;
+            appState.currentVisitIndex = index;
+            navigateTo('visit');
+        }
+
+        function continueReport() {
+            // Encontrar a primeira visita que ainda não está trancada
+            const nextUnlockedIdx = appState.visits.findIndex(v => !v.isLocked);
+            const targetIdx = nextUnlockedIdx !== -1 ? nextUnlockedIdx : 0;
+            openVisit(targetIdx);
+        }
+
+        // ==================== RENDERIZAÇÃO DO PAINEL PRINCIPAL ====================
+        function getVisitStatus(visit) {
+            if (visit.isLocked) {
+                return { code: 'locked', label: 'Bloqueada', badgeClass: 'bg-emerald-100 text-emerald-800', icon: 'fa-lock' };
+            }
+            const hasAnyData = Boolean(
+                visit.company.trim() || 
+                visit.description.trim() || 
+                visit.location.trim() || 
+                visit.problem.trim() || 
+                visit.feedback.trim() || 
+                visit.probability || 
+                visit.nextAction
+            );
+            if (hasAnyData) {
+                return { code: 'in_progress', label: 'Em curso', badgeClass: 'bg-amber-100 text-amber-800', icon: 'fa-pen' };
+            }
+            return { code: 'empty', label: 'Por preencher', badgeClass: 'bg-slate-100 text-slate-600', icon: 'fa-regular fa-circle' };
+        }
+
+        function renderDashboard() {
+            updateSellerUI();
+
+            const lockedCount = appState.visits.filter(v => v.isLocked).length;
+            const inProgressCount = appState.visits.filter(v => !v.isLocked && getVisitStatus(v).code === 'in_progress').length;
+            const percent = Math.round((lockedCount / 10) * 100);
+
+            document.getElementById('dash-progress-text').textContent = `Visitas ${String(lockedCount).padStart(2, '0')}/10`;
+            document.getElementById('dash-progress-percent').textContent = `${percent}%`;
+            document.getElementById('dash-progress-bar').style.width = `${percent}%`;
+            document.getElementById('dash-locked-count').textContent = `${lockedCount} Concluída(s) e Bloqueada(s)`;
+            document.getElementById('dash-draft-count').textContent = `${inProgressCount} Em curso`;
+
+            // Actualizar texto do botão "Continuar Relatório"
+            const nextUnlockedIdx = appState.visits.findIndex(v => !v.isLocked);
+            const continueBtnLabel = document.getElementById('dash-continue-label');
+            if (nextUnlockedIdx !== -1) {
+                continueBtnLabel.textContent = `Continuar Relatório (Visita ${String(nextUnlockedIdx + 1).padStart(2, '0')})`;
+            } else {
+                continueBtnLabel.textContent = `Todas as 10 Visitas Concluídas (Rever)`;
+            }
+
+            // Renderizar grelha das 10 visitas
+            const grid = document.getElementById('visits-grid');
+            grid.innerHTML = '';
+
+            appState.visits.forEach((visit, idx) => {
+                const status = getVisitStatus(visit);
+                const numStr = String(idx + 1).padStart(2, '0');
+                const companyDisplay = visit.company.trim() ? visit.company.trim() : 'Empresa não registada';
+                
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.onclick = () => openVisit(idx);
+                card.className = `w-full text-left p-4 rounded-2xl border transition active:scale-[0.99] flex items-center justify-between gap-3 ${
+                    visit.isLocked 
+                        ? 'bg-emerald-50/40 border-emerald-200/80 hover:bg-emerald-50' 
+                        : status.code === 'in_progress'
+                            ? 'bg-amber-50/30 border-amber-200/80 hover:bg-amber-50/60'
+                            : 'bg-white border-slate-200/80 hover:bg-slate-50'
+                }`;
+
+                card.innerHTML = `
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-xs font-extrabold uppercase tracking-wider text-brand-900">Visita ${numStr}</span>
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${status.badgeClass} inline-flex items-center gap-1">
+                                <i class="fa-solid ${status.icon}"></i> ${status.label}
+                            </span>
+                        </div>
+                        <p class="text-sm font-semibold truncate ${visit.company.trim() ? 'text-slate-900' : 'text-slate-400 italic'}">
+                            ${escapeHTML(companyDisplay)}
+                        </p>
+                    </div>
+                    <div class="w-8 h-8 rounded-full bg-sky-50 border border-sky-100 flex items-center justify-center text-brand-cyan shrink-0">
+                        <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // ==================== FORMULÁRIO DE VISITA E BLOQUEIO ====================
+        function renderOptionButtons() {
+            // Botões de Probabilidade
+            const probContainer = document.getElementById('probability-buttons');
+            probContainer.innerHTML = '';
+            PROBABILITY_OPTIONS.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.dataset.value = opt.id;
+                btn.className = `prob-btn py-3 px-2 rounded-xl border text-xs font-bold transition text-center ${opt.color}`;
+                btn.textContent = opt.label;
+                btn.onclick = () => selectProbability(opt.id);
+                probContainer.appendChild(btn);
+            });
+
+            // Botões de Acção a Seguir
+            const actContainer = document.getElementById('next-action-buttons');
+            actContainer.innerHTML = '';
+            ACTION_OPTIONS.forEach(act => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.dataset.value = act;
+                btn.className = 'act-btn py-3 px-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 text-xs font-bold transition text-center';
+                btn.textContent = act;
+                btn.onclick = () => selectNextAction(act);
+                actContainer.appendChild(btn);
+            });
+        }
+
+        function renderVisitForm(index) {
+            const visit = appState.visits[index];
+            const numStr = String(index + 1).padStart(2, '0');
+
+            // Renderizar pills de navegação rápida no topo
+            const pillsContainer = document.getElementById('visit-step-pills');
+            pillsContainer.innerHTML = '';
+            appState.visits.forEach((v, i) => {
+                const isActive = i === index;
+                const pill = document.createElement('button');
+                pill.type = 'button';
+                pill.onclick = () => openVisit(i);
+                pill.className = `px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition flex items-center gap-1.5 border ${
+                    isActive 
+                        ? 'bg-brand-900 text-white border-brand-900 shadow-sm' 
+                        : v.isLocked 
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                            : 'bg-white text-slate-600 border-slate-200'
+                }`;
+                pill.innerHTML = `${v.isLocked ? '<i class="fa-solid fa-lock text-[10px]"></i>' : ''}<span>${String(i + 1).padStart(2, '0')}</span>`;
+                pillsContainer.appendChild(pill);
+            });
+
+            // Cabeçalho e barra de progresso
+            document.getElementById('visit-header-title').textContent = `Visita ${numStr} de 10`;
+            document.getElementById('visit-step-bar').style.width = `${((index + 1) / 10) * 100}%`;
+
+            // Preencher valores dos campos
+            document.getElementById('field-company').value = visit.company || '';
+            document.getElementById('field-description').value = visit.description || '';
+            document.getElementById('field-location').value = visit.location || '';
+            document.getElementById('field-problem').value = visit.problem || '';
+            document.getElementById('field-feedback').value = visit.feedback || '';
+            document.getElementById('field-other-action').value = visit.otherAction || '';
+
+            updateMapLinkButton(visit.location);
+            updateProbabilityUI(visit.probability, visit.isLocked);
+            updateNextActionUI(visit.nextAction, visit.isLocked);
+
+            // Aplicar estado de bloqueio ou desbloqueio
+            applyLockStateToUI(visit);
+
+            // Botões de navegação anterior/seguinte
+            document.getElementById('btn-prev-visit').disabled = (index === 0);
+            const nextBtn = document.getElementById('btn-next-visit');
+            if (index === 9) {
+                nextBtn.innerHTML = `<span>Ver Resumo</span><i class="fa-solid fa-clipboard-check"></i>`;
+            } else {
+                nextBtn.innerHTML = `<span>Próxima visita</span><i class="fa-solid fa-chevron-right"></i>`;
+            }
+
+            // Textos dos botões principais
+            if (index < 9) {
+                const nextNum = String(index + 2).padStart(2, '0');
+                document.getElementById('btn-lock-advance-text').textContent = `Trancar visita e avançar (${nextNum})`;
+                document.getElementById('btn-next-company-text').textContent = `Próxima empresa (Visita ${nextNum})`;
+            } else {
+                document.getElementById('btn-lock-advance-text').textContent = `Trancar visita e ver resumo`;
+                document.getElementById('btn-next-company-text').textContent = `Concluir e ver resumo diário`;
+            }
+        }
+
+        function applyLockStateToUI(visit) {
+            const isLocked = visit.isLocked;
+            const statusBadge = document.getElementById('visit-status-badge');
+            const lockedBanner = document.getElementById('locked-banner');
+            const unlockedActions = document.getElementById('unlocked-actions');
+            const lockedActions = document.getElementById('locked-actions');
+            const gpsBtn = document.getElementById('btn-get-gps');
+
+            // Bloquear/Desbloquear inputs
+            const fields = [
+                'field-company', 'field-description', 'field-location', 
+                'field-problem', 'field-feedback', 'field-other-action'
+            ];
+            fields.forEach(id => {
+                document.getElementById(id).disabled = isLocked;
+            });
+            gpsBtn.disabled = isLocked;
+            gpsBtn.classList.toggle('opacity-50', isLocked);
+
+            if (isLocked) {
+                statusBadge.className = 'px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-emerald-100 text-emerald-800';
+                statusBadge.innerHTML = '<i class="fa-solid fa-lock"></i><span>Concluída e Protegida</span>';
+                lockedBanner.classList.remove('hidden');
+                unlockedActions.classList.add('hidden');
+                lockedActions.classList.remove('hidden');
+            } else {
+                statusBadge.className = 'px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-amber-100 text-amber-800';
+                statusBadge.innerHTML = '<i class="fa-solid fa-pen"></i><span>Em preenchimento</span>';
+                lockedBanner.classList.add('hidden');
+                unlockedActions.classList.remove('hidden');
+                lockedActions.classList.add('hidden');
+            }
+        }
+
+        function setupFormAutosave() {
+            const textFields = [
+                { id: 'field-company', key: 'company' },
+                { id: 'field-description', key: 'description' },
+                { id: 'field-location', key: 'location' },
+                { id: 'field-problem', key: 'problem' },
+                { id: 'field-feedback', key: 'feedback' },
+                { id: 'field-other-action', key: 'otherAction' }
+            ];
+
+            textFields.forEach(item => {
+                const el = document.getElementById(item.id);
+                el.addEventListener('input', () => {
+                    const visit = appState.visits[appState.currentVisitIndex];
+                    if (visit.isLocked) return; // Protecção extra contra edição se bloqueado
+                    visit[item.key] = el.value;
+                    visit.updatedAt = new Date().toISOString();
+                    saveDailyReport();
+
+                    if (item.key === 'location') {
+                        updateMapLinkButton(el.value);
+                    }
+                });
+            });
+        }
+
+        function selectProbability(value) {
+            const visit = appState.visits[appState.currentVisitIndex];
+            if (visit.isLocked) return;
+            visit.probability = value;
+            visit.updatedAt = new Date().toISOString();
+            saveDailyReport();
+            updateProbabilityUI(value, false);
+        }
+
+        function updateProbabilityUI(selectedValue, isLocked) {
+            document.querySelectorAll('.prob-btn').forEach(btn => {
+                const opt = PROBABILITY_OPTIONS.find(o => o.id === btn.dataset.value);
+                btn.disabled = isLocked;
+                if (btn.dataset.value === selectedValue) {
+                    btn.className = `prob-btn py-3 px-2 rounded-xl border text-xs font-bold transition text-center shadow-sm ${opt.active}`;
+                } else {
+                    btn.className = `prob-btn py-3 px-2 rounded-xl border text-xs font-bold transition text-center ${opt.color} ${isLocked ? 'opacity-60' : ''}`;
+                }
+            });
+        }
+
+        function selectNextAction(value) {
+            const visit = appState.visits[appState.currentVisitIndex];
+            if (visit.isLocked) return;
+            visit.nextAction = value;
+            visit.updatedAt = new Date().toISOString();
+            saveDailyReport();
+            updateNextActionUI(value, false);
+        }
+
+        function updateNextActionUI(selectedValue, isLocked) {
+            document.querySelectorAll('.act-btn').forEach(btn => {
+                btn.disabled = isLocked;
+                if (btn.dataset.value === selectedValue) {
+                    btn.className = 'act-btn py-3 px-3 rounded-xl border border-brand-900 bg-brand-900 text-white text-xs font-bold transition text-center shadow-sm';
+                } else {
+                    btn.className = `act-btn py-3 px-3 rounded-xl border border-sky-200/80 bg-brand-surface text-brand-900 text-xs font-bold transition text-center ${isLocked ? 'opacity-60' : 'hover:bg-sky-100/70'}`;
+                }
+            });
+
+            const otherContainer = document.getElementById('other-action-container');
+            if (selectedValue === 'Outro') {
+                otherContainer.classList.remove('hidden');
+            } else {
+                otherContainer.classList.add('hidden');
+            }
+        }
+
+        // ==================== GEOLOCALIZAÇÃO GPS ====================
+        function captureGPSLocation() {
+            const visit = appState.visits[appState.currentVisitIndex];
+            if (visit.isLocked) return;
+
+            if (!navigator.geolocation) {
+                showToast('O seu dispositivo não suporta geolocalização GPS.', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('btn-get-gps');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-brand-accent"></i><span>A obter coordenadas GPS...</span>';
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude.toFixed(6);
+                    const lng = position.coords.longitude.toFixed(6);
+                    const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+                    
+                    const locInput = document.getElementById('field-location');
+                    locInput.value = mapsUrl;
+                    visit.location = mapsUrl;
+                    visit.updatedAt = new Date().toISOString();
+                    saveDailyReport();
+                    updateMapLinkButton(mapsUrl);
+
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                    showToast('Localização GPS registada com sucesso!', 'success');
+                },
+                (error) => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                    let msg = 'Não foi possível obter a localização.';
+                    if (error.code === error.PERMISSION_DENIED) {
+                        msg = 'Permissão de localização negada. Active o GPS no telemóvel.';
+                    }
+                    showToast(msg, 'error');
+                },
+                { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+            );
+        }
+
+        function updateMapLinkButton(url) {
+            const mapBtn = document.getElementById('btn-open-map');
+            if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+                mapBtn.href = url;
+                mapBtn.classList.remove('hidden');
+                mapBtn.classList.add('inline-flex');
+            } else {
+                mapBtn.classList.add('hidden');
+                mapBtn.classList.remove('inline-flex');
+            }
+        }
+
+        // ==================== MECANISMO DE TRANCAR / DESTRANCAR ====================
+        function validateVisitRequiredFields(visit) {
+            if (!visit.company.trim()) {
+                return 'Por favor, preencha o nome da Empresa (Campo 01).';
+            }
+            if (!visit.description.trim()) {
+                return 'Por favor, preencha a Descrição da visita (Campo 02).';
+            }
+            if (!visit.problem.trim()) {
+                return 'Por favor, registe o Problema identificado (Campo 04).';
+            }
+            if (!visit.nextAction) {
+                return 'Por favor, seleccione a Acção a seguir (Campo 07).';
+            }
+            if (visit.nextAction === 'Outro' && !visit.otherAction.trim()) {
+                return 'Por favor, especifique qual é a outra acção a seguir.';
+            }
+            return null;
+        }
+
+        function lockCurrentOnly() {
+            const visit = appState.visits[appState.currentVisitIndex];
+            const validationError = validateVisitRequiredFields(visit);
+
+            if (validationError) {
+                showToast(validationError, 'error');
+                return;
+            }
+
+            visit.isLocked = true;
+            visit.updatedAt = new Date().toISOString();
+            saveDailyReport();
+            renderVisitForm(appState.currentVisitIndex);
+            showToast(`Visita ${String(visit.id).padStart(2, '0')} trancada e protegida!`, 'success');
+        }
+
+        function lockAndAdvance() {
+            const visit = appState.visits[appState.currentVisitIndex];
+            const validationError = validateVisitRequiredFields(visit);
+
+            if (validationError) {
+                showToast(validationError, 'error');
+                return;
+            }
+
+            visit.isLocked = true;
+            visit.updatedAt = new Date().toISOString();
+            saveDailyReport();
+            showToast(`Visita ${String(visit.id).padStart(2, '0')} concluída e protegida!`, 'success');
+
+            if (appState.currentVisitIndex < 9) {
+                openVisit(appState.currentVisitIndex + 1);
+            } else {
+                navigateTo('summary');
+            }
+        }
+
+        function saveAsDraft() {
+            const visit = appState.visits[appState.currentVisitIndex];
+            if (visit.isLocked) return;
+            visit.updatedAt = new Date().toISOString();
+            saveDailyReport();
+            showToast('Rascunho guardado com segurança.', 'info');
+        }
+
+        function requestUnlockVisit() {
+            const visit = appState.visits[appState.currentVisitIndex];
+            if (!visit.isLocked) return;
+
+            openModal({
+                title: 'Destrancar Visita para Edição',
+                message: 'Tem a certeza de que pretende desbloquear esta visita? Os dados registados serão mantidos, mas poderão ser editados.',
+                confirmText: 'Destrancar para editar',
+                icon: 'fa-lock-open',
+                iconBg: 'bg-amber-100 text-amber-600',
+                onConfirm: () => {
+                    visit.isLocked = false;
+                    visit.updatedAt = new Date().toISOString();
+                    saveDailyReport();
+                    renderVisitForm(appState.currentVisitIndex);
+                    showToast('Visita desbloqueada. Não se esqueça de voltar a trancar após editar.', 'info');
+                }
+            });
+        }
+
+        function goToPrevVisit() {
+            if (appState.currentVisitIndex > 0) {
+                openVisit(appState.currentVisitIndex - 1);
+            }
+        }
+
+        function goToNextVisit() {
+            if (appState.currentVisitIndex < 9) {
+                openVisit(appState.currentVisitIndex + 1);
+            } else {
+                navigateTo('summary');
+            }
+        }
+
+        // ==================== RESUMO DIÁRIO ====================
+        function getRecordedVisits() {
+            return appState.visits.filter(v => 
+                v.company.trim() !== '' || 
+                v.description.trim() !== '' || 
+                v.problem.trim() !== '' ||
+                v.isLocked
+            );
+        }
+
+        function renderSummary() {
+            const recorded = getRecordedVisits();
+            const lockedCount = appState.visits.filter(v => v.isLocked).length;
+            const incompleteCount = recorded.filter(v => !v.isLocked).length;
+
+            document.getElementById('sum-total-count').textContent = recorded.length;
+            document.getElementById('sum-locked-count').textContent = lockedCount;
+            document.getElementById('sum-incomplete-count').textContent = incompleteCount;
+
+            const sellerName = localStorage.getItem(STORAGE_KEYS.SELLER_NAME) || 'Não definido';
+            document.getElementById('sum-seller-signature').textContent = sellerName;
+            document.getElementById('sum-date-signature').textContent = formatDatePT(appState.activeDateISO);
+
+            const list = document.getElementById('summary-list');
+            list.innerHTML = '';
+
+            if (recorded.length === 0) {
+                list.innerHTML = `
+                    <div class="bg-white rounded-3xl p-8 text-center border border-slate-200/80">
+                        <i class="fa-regular fa-folder-open text-3xl text-slate-300 mb-2"></i>
+                        <p class="text-slate-600 font-semibold text-sm">Ainda não existem visitas registadas neste dia.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            recorded.forEach(visit => {
+                const numStr = String(visit.id).padStart(2, '0');
+                const actionText = visit.nextAction === 'Outro' 
+                    ? `Outro (${visit.otherAction || 'Não especificado'})` 
+                    : (visit.nextAction || 'Não definida');
+
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 space-y-2.5';
+                card.innerHTML = `
+                    <div class="flex items-center justify-between gap-2 pb-2 border-b border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2.5 py-1 rounded-lg bg-brand-900 text-white text-xs font-extrabold">VISITA ${numStr}</span>
+                            <h4 class="font-bold text-slate-900 text-base">${escapeHTML(visit.company || 'Sem nome')}</h4>
+                        </div>
+                        <button onclick="openVisit(${visit.id - 1})" class="text-xs font-bold text-brand-accent hover:underline flex items-center gap-1">
+                            <i class="fa-solid ${visit.isLocked ? 'fa-eye' : 'fa-pen'}"></i>
+                            <span>${visit.isLocked ? 'Consultar' : 'Completar'}</span>
+                        </button>
+                    </div>
+                    <p class="text-xs text-slate-600"><strong class="text-slate-800">Descrição:</strong> ${escapeHTML(visit.description || '---')}</p>
+                    <p class="text-xs text-slate-600"><strong class="text-slate-800">Problema:</strong> ${escapeHTML(visit.problem || '---')}</p>
+                    <div class="flex flex-wrap gap-2 pt-1">
+                        <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-[11px] font-semibold">
+                            Probabilidade: <strong>${escapeHTML(visit.probability || 'Não definida')}</strong>
+                        </span>
+                        <span class="px-2.5 py-1 rounded-lg bg-blue-50 text-brand-accent text-[11px] font-semibold">
+                            Acção: <strong>${escapeHTML(actionText)}</strong>
+                        </span>
+                        <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold ${visit.isLocked ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                            ${visit.isLocked ? '🔒 Bloqueada' : '⚠️ Em curso'}
+                        </span>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        // ==================== ENVIO CONSOLIDADO PELO WHATSAPP ====================
+        function generateWhatsAppReportText() {
+            const recorded = getRecordedVisits();
+            const sellerName = localStorage.getItem(STORAGE_KEYS.SELLER_NAME) || 'Vendedor não identificado';
+            const dateFormatted = formatDatePT(appState.activeDateISO);
+
+            let lines = [
+                `RELATÓRIO COMERCIAL DIÁRIO`,
+                ``,
+                `Data: ${dateFormatted}`,
+                `Vendedor: ${sellerName}`,
+                `Total de visitas: ${recorded.length}`,
+                ``
+            ];
+
+            recorded.forEach(visit => {
+                const numStr = String(visit.id).padStart(2, '0');
+                const actionText = visit.nextAction === 'Outro' 
+                    ? `Outro: ${visit.otherAction || 'Não especificado'}` 
+                    : (visit.nextAction || 'Não definida');
+
+                lines.push(`━━━━━━━━━━━━━━━━━━`);
+                lines.push(``);
+                lines.push(`VISITA ${numStr}`);
+                lines.push(``);
+                lines.push(`Empresa: ${visit.company.trim() || 'Não informada'}`);
+                lines.push(``);
+                lines.push(`Descrição: ${visit.description.trim() || 'Não informada'}`);
+                
+                if (visit.location && visit.location.trim()) {
+                    lines.push(``);
+                    lines.push(`Localização: ${visit.location.trim()}`);
+                }
+
+                lines.push(``);
+                lines.push(`Problema identificado: ${visit.problem.trim() || 'Não informado'}`);
+                lines.push(``);
+                lines.push(`Feedback do cliente: ${visit.feedback.trim() || 'Sem observações'}`);
+                lines.push(``);
+                lines.push(`Possibilidade de fechar a venda: ${visit.probability || 'Não definida'}`);
+                lines.push(``);
+                lines.push(`Acção a seguir: ${actionText}`);
+                lines.push(``);
+            });
+
+            lines.push(`━━━━━━━━━━━━━━━━━━`);
+            lines.push(``);
+            lines.push(`Relatório elaborado por: ${sellerName}`);
+
+            return lines.join('\n');
+        }
+
+        function prepareWhatsAppShare() {
+            const recorded = getRecordedVisits();
+            if (recorded.length === 0) {
+                showToast('Registe pelo menos uma visita antes de enviar o relatório.', 'error');
+                return;
+            }
+
+            const reportText = generateWhatsAppReportText();
+
+            openModal({
+                title: 'Enviar pelo WhatsApp',
+                message: 'O relatório está pronto para envio. Deseja continuar?',
+                confirmText: 'Abrir WhatsApp',
+                icon: 'fa-whatsapp',
+                iconBg: 'bg-emerald-100 text-emerald-600',
+                onConfirm: () => {
+                    // Abrir WhatsApp com o texto pré-preenchido (o utilizador escolhe o contacto/grupo)
+                    const encodedText = encodeURIComponent(reportText);
+                    const waUrl = `https://api.whatsapp.com/send?text=${encodedText}`;
+                    window.open(waUrl, '_blank', 'noopener,noreferrer');
+                }
+            });
+        }
+
+        // ==================== EXPORTAÇÃO EXCEL (.XLSX) E PARTILHA NATIVA ====================
+        function exportToExcel(shareAfterExport = false) {
+            const recorded = getRecordedVisits();
+            if (recorded.length === 0) {
+                showToast('Não existem visitas registadas para exportar.', 'error');
+                return;
+            }
+
+            if (typeof XLSX === 'undefined') {
+                showToast('A biblioteca Excel ainda está a carregar. Tente novamente em instantes.', 'error');
+                return;
+            }
+
+            // Construir linhas estritamente com as 4 colunas solicitadas
+            const rows = recorded.map(visit => {
+                const actionText = visit.nextAction === 'Outro' 
+                    ? `Outro: ${visit.otherAction || 'Não especificado'}` 
+                    : (visit.nextAction || '');
+
+                return {
+                    'Empresa': visit.company.trim(),
+                    'Descrição': visit.description.trim(),
+                    'Problema': visit.problem.trim(),
+                    'Acção a seguir': actionText
+                };
+            });
+
+            // Criar folha de cálculo
+            const worksheet = XLSX.utils.json_to_sheet(rows, {
+                header: ['Empresa', 'Descrição', 'Problema', 'Acção a seguir']
+            });
+
+            // Ajustar largura das colunas para boa legibilidade
+            worksheet['!cols'] = [
+                { wch: 28 }, // Empresa
+                { wch: 42 }, // Descrição
+                { wch: 42 }, // Problema
+                { wch: 26 }  // Acção a seguir
+            ];
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Relatório Comercial');
+
+            const fileName = `Relatorio_Comercial_${appState.activeDateISO}.xlsx`;
+
+            if (shareAfterExport) {
+                // Gerar Blob / File para Web Share API nativa (Android/iOS)
+                const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+                const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                const file = new File([blob], fileName, { type: blob.type });
+
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    navigator.share({
+                        title: 'Relatório Comercial Diário',
+                        text: `Relatório Comercial Diário (${formatDatePT(appState.activeDateISO)})`,
+                        files: [file]
+                    }).then(() => {
+                        showToast('Ficheiro Excel partilhado com sucesso!', 'success');
+                    }).catch((err) => {
+                        if (err.name !== 'AbortError') {
+                            // Fallback para download directo
+                            XLSX.writeFile(workbook, fileName);
+                            showToast('Ficheiro Excel descarregado para o dispositivo.', 'info');
+                        }
+                    });
+                } else {
+                    // Fallback se o navegador não suportar partilha de ficheiros
+                    XLSX.writeFile(workbook, fileName);
+                    showToast('Ficheiro Excel descarregado! Pode anexá-lo no WhatsApp.', 'info');
+                }
+            } else {
+                // Download directo
+                XLSX.writeFile(workbook, fileName);
+                showToast(`Ficheiro ${fileName} descarregado!`, 'success');
+            }
+        }
+
+        // ==================== DEFINIÇÕES, HISTÓRICO E REINÍCIO ====================
+        function updateSellerUI() {
+            const name = localStorage.getItem(STORAGE_KEYS.SELLER_NAME) || '';
+            document.getElementById('dash-seller-name').textContent = name || 'Não definido (Toque em Editar)';
+        }
+
+        function renderSettings() {
+            document.getElementById('settings-seller-name').value = localStorage.getItem(STORAGE_KEYS.SELLER_NAME) || '';
+            document.getElementById('settings-access-code').value = localStorage.getItem(STORAGE_KEYS.CONFIG_CODE) || '';
+
+            // Listar datas guardadas no localStorage
+            const historyContainer = document.getElementById('history-dates-list');
+            historyContainer.innerHTML = '';
+
+            const dates = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith(STORAGE_KEYS.REPORTS_PREFIX)) {
+                    dates.push(key.replace(STORAGE_KEYS.REPORTS_PREFIX, ''));
+                }
+            }
+            dates.sort().reverse();
+
+            dates.forEach(dateISO => {
+                const isSelected = dateISO === appState.activeDateISO;
+                const item = document.createElement('div');
+                item.className = `flex items-center justify-between p-3 rounded-2xl border ${isSelected ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'}`;
+                item.innerHTML = `
+                    <div>
+                        <span class="text-sm font-bold text-slate-800">${formatDatePT(dateISO)}</span>
+                        ${dateISO === appState.currentDateISO ? '<span class="ml-2 text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-brand-900 text-white">Hoje</span>' : ''}
+                    </div>
+                    <button onclick="switchReportDate('${dateISO}')" class="px-3 py-1.5 rounded-xl text-xs font-bold ${isSelected ? 'bg-brand-accent text-white' : 'bg-white border border-slate-300 text-slate-700'}">
+                        ${isSelected ? 'Activo' : 'Abrir'}
+                    </button>
+                `;
+                historyContainer.appendChild(item);
+            });
+        }
+
+        function switchReportDate(dateISO) {
+            loadDailyReport(dateISO);
+            showToast(`Relatório de ${formatDatePT(dateISO)} carregado.`, 'info');
+            navigateTo('dashboard');
+        }
+
+        function saveSellerName() {
+            const name = document.getElementById('settings-seller-name').value.trim();
+            if (!name) {
+                showToast('Introduza o nome do vendedor.', 'error');
+                return;
+            }
+            localStorage.setItem(STORAGE_KEYS.SELLER_NAME, name);
+            saveDailyReport();
+            updateSellerUI();
+            showToast('Nome do vendedor guardado com sucesso!', 'success');
+        }
+
+        function updateConfiguredCode() {
+            const newCode = document.getElementById('settings-access-code').value.trim().toUpperCase();
+            const formatRegex = /^[A-Z]{2}[0-9]{3}$/;
+
+            if (!formatRegex.test(newCode)) {
+                showToast('Formato inválido! Use 2 letras maiúsculas e 3 números (ex: AB123).', 'error');
+                return;
+            }
+
+            localStorage.setItem(STORAGE_KEYS.CONFIG_CODE, newCode);
+            showToast('Código de acesso actualizado com sucesso!', 'success');
+        }
+
+        function confirmResetDailyReport() {
+            openModal({
+                title: 'Reiniciar Relatório de Hoje',
+                message: `Tem a certeza absoluta de que pretende apagar todas as visitas registadas no dia ${formatDatePT(appState.activeDateISO)}? Esta acção não pode ser desfeita.`,
+                confirmText: 'Sim, apagar tudo',
+                icon: 'fa-triangle-exclamation',
+                iconBg: 'bg-red-100 text-red-600',
+                onConfirm: () => {
+                    appState.visits = createEmptyVisitsArray();
+                    appState.currentVisitIndex = 0;
+                    saveDailyReport();
+                    showToast('Relatório reiniciado com sucesso.', 'info');
+                    navigateTo('dashboard');
+                }
+            });
+        }
+
+        // ==================== COMPONENTES DE INTERFACE (MODAL E TOAST) ====================
+        function openModal({ title, message, confirmText = 'Confirmar', icon = 'fa-circle-info', iconBg = 'bg-blue-100 text-blue-600', onConfirm }) {
+            const modal = document.getElementById('custom-modal');
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            
+            const iconContainer = document.getElementById('modal-icon-container');
+            iconContainer.className = `w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${iconBg}`;
+            document.getElementById('modal-icon').className = `fa-solid ${icon} text-lg`;
+
+            const confirmBtn = document.getElementById('modal-confirm-btn');
+            const cancelBtn = document.getElementById('modal-cancel-btn');
+            confirmBtn.textContent = confirmText;
+
+            const closeModal = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            };
+
+            cancelBtn.onclick = closeModal;
+            confirmBtn.onclick = () => {
+                closeModal();
+                if (typeof onConfirm === 'function') onConfirm();
+            };
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const styles = {
+                success: 'bg-emerald-900 text-white border-emerald-700',
+                error: 'bg-red-900 text-white border-red-700',
+                info: 'bg-brand-900 text-white border-brand-cyan'
+            };
+
+            const icons = {
+                success: 'fa-circle-check text-emerald-400',
+                error: 'fa-circle-exclamation text-red-400',
+                info: 'fa-circle-info text-brand-gold'
+            };
+
+            toast.className = `px-4 py-3 rounded-2xl shadow-xl border text-xs sm:text-sm font-semibold flex items-center gap-2.5 transition-all duration-300 transform translate-y-2 opacity-0 ${styles[type] || styles.info}`;
+            toast.innerHTML = `<i class="fa-solid ${icons[type] || icons.info} text-base shrink-0"></i><span>${escapeHTML(message)}</span>`;
+
+            container.appendChild(toast);
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3200);
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag] || tag));
+        }
+    </script>
+</body>
+</html>

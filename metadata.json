@@ -1,0 +1,6 @@
+{
+  "name": "BI · Relatório Comercial Diário",
+  "description": "Plataforma móvel de registo comercial diário no terreno — Business Intelligence · Grupo CTS.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
